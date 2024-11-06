@@ -1,3 +1,5 @@
+use std::fs::read_dir;
+use chrono::{DateTime, NaiveDateTime};
 use clap::Parser;
 use filetime::{set_file_atime, set_file_mtime, FileTime};
 use crate::args::Args;
@@ -20,13 +22,14 @@ fn main() {
     // Directory stuff
     let mut counter = 0;
     for entry in &args.files {
-        if let Err(err) = run_operation(&args, &mut counter, entry) {
-            error!("{err}");
-        }
+        run_operation(&args, &mut counter, entry);
     }
     
     // "Modified X files" text
-    println!("{counter} files were modified.");
+    println!(
+        "{counter} {FileWas} modified.",
+        FileWas = if counter == 1 { "file was" } else { "files were" }
+    );
     
     // Exit
     std::process::exit(0);
@@ -39,32 +42,46 @@ pub enum OperationType {
     Accessed
 }
 
-pub fn run_operation(args: &Args, counter: &mut i32, file: &str) -> Result<(), String> {
+pub fn run_operation(args: &Args, counter: &mut i32, file: &str) {
     if !std::fs::exists(file).unwrap_or(false) {
-        return string_error!("'{file}' does not exist!", !args.verbose);
+        error!("File '{file}' does not exist!");
+        return;
     }
     let Ok(metadata) = std::fs::metadata(file) else {
-        return string_error!("Skipped '{file}'. Unable to gather metadata", !args.verbose);
+        error!("Skipped '{file}'. Unable to gather metadata");
+        return;
     };
 
-    // TODO: Set the directory times as well
+    // TODO: Set the directory node time as well
     if metadata.is_dir() {
-        if let Err(err) = run_operation(args, counter, file) {
-            return Err(err);
+        match read_dir(file) {
+            Ok(readdir) => {
+                for entry in readdir {
+                    match entry {
+                        Ok(entry) => {
+                             run_operation(args, counter, &*entry.path().to_string_lossy());
+                        }
+                        Err(err) => error!("Unable to read directory '{file}': {err}"),
+                    }
+                }
+            }
+            Err(err) => error!("Unable to read directory '{file}': {err}"),
         }
     } else if metadata.is_file() {
         if let Some(time) = &args.modified {
-            if let Err(err) = set_file_mtime(file, FileTime::from_unix_time(time.and_utc().timestamp_millis() / 1000, time.and_utc().timestamp_micros() as u32)) {
-                return Err(err.to_string());
+            let time = FileTime::from_unix_time(time.and_utc().timestamp_millis() / 1000, 0);
+            if let Err(err) = set_file_mtime(file, time) {
+                error!("Failed to set the 'modified' time for '{file}' (time={Time}): {err}", Time = DateTime::from_timestamp(time.unix_seconds(), time.nanoseconds()).unwrap_or_default());
+                return;
             }
         }
         if let Some(time) = &args.accessed {
-            if let Err(err) = set_file_atime(file, FileTime::from_unix_time(time.and_utc().timestamp_millis() / 1000, time.and_utc().timestamp_micros() as u32)) {
-                return Err(err.to_string());
+            let time = FileTime::from_unix_time(time.and_utc().timestamp_millis() / 1000, 0);
+            if let Err(err) = set_file_atime(file, time) {
+                error!("Failed to set the 'accessed' time for '{file}' (time={Time}): {err}", Time = DateTime::from_timestamp(time.unix_seconds(), time.nanoseconds()).unwrap_or_default());
+                return;
             }
         }
+        *counter += 1;
     }
-
-    *counter += 1;
-    Ok(())
 }

@@ -4,8 +4,23 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-chrono = { version = "0.4", features = ["serde"] }
+chrono = { version = "0.4" }
 clap = { version = "4.5", features = ["derive"] }
-serde = { version = "1.0", features = ["derive"] }
 colored = "2"
 filetime = "0.2"
+
+# Enable the lowest amount of optimizations in debug mode
+[profile.dev]
+opt-level = 1
+
+# Enable high optimizations for dependencies (incl. Bevy):
+[profile.dev.package."*"]
+opt-level = 3
+
+# Improves performance
+[profile.release]
+codegen-units = 1
+opt-level = 3  # All optimizations
+strip = "symbols"
+debug = "none"  # "line-tables-only" enables backtraces (I think)
+lto = "fat"

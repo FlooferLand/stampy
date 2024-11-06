@@ -1,4 +1,16 @@
 #[macro_export]
+macro_rules! info {
+    ($($text:tt)*) => {{
+	    use colored::Colorize;
+        println!(
+		    "{Mark} {Text}",
+	        Mark = "Info:".bold().underline().white(),
+	        Text = format!($($text)*)
+        );
+    }};
+}
+
+#[macro_export]
 macro_rules! error {
     ($($text:tt)*) => {{
 	    use colored::Colorize;
@@ -20,26 +32,6 @@ macro_rules! fatal_error {
 	        Text = format!($($text)*)
         );
         std::process::exit($exit_code);
-    }};
-}
-
-#[macro_export]
-macro_rules! string_error {
-    ($($text:literal)* $(, $quiet:expr)*) => {{
-	    let text = format!($($text)*);
-	    $(
-	        if !$quiet {
-	            use colored::Colorize;
-		        println!(
-				    "{Mark} {text}",
-			        Mark = "Error:".bold().underline().red(),
-		        );
-	        }
-		)*
-	    Result::Err(format!(
-		    "{Mark} {text}",
-	        Mark = "Error:"
-	    ))
     }};
 }
 

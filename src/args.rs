@@ -34,7 +34,7 @@ pub struct Args {
 	#[arg(
         short = 'C',
         group = "mode",
-        help = "Edit the 'created' stamp (UNSUPPORTED)",
+        help = "Edit the 'created' timestamp (UNSUPPORTED)",
         value_parser = parse_time,
         value_name = "TIME"
 	)]
@@ -43,7 +43,7 @@ pub struct Args {
 	#[arg(
         short = 'M',
         group = "mode",
-        help = "Edit the 'modified' stamp",
+        help = "Edit the 'modified' timestamp",
         value_parser = parse_time,
         value_name = "TIME",
 	)]
@@ -52,7 +52,7 @@ pub struct Args {
 	#[arg(
         short = 'A',
         group = "mode",
-        help = "Edit the 'accessed' stamp",
+        help = "Edit the 'accessed' timestamp",
         value_parser = parse_time,
         value_name = "TIME"
 	)]
@@ -79,7 +79,10 @@ pub fn parse_time(arg: &str) -> Result<NaiveDateTime, String> {
 	// Default time if only the date was specified
 	if !arg.contains(':') {
 		arg += " ";
-		arg += NaiveTime::from_hms_opt(0, 0, 0).unwrap().format(time_format).to_string().as_str();
+		arg += NaiveTime::from_hms_opt(0, 0, 0)
+			.expect("parse_time: Creation of new default shouldn't fail")
+			.format(time_format)
+			.to_string().as_str();
 	}
 
 	// Getting the date and time
@@ -92,5 +95,5 @@ pub fn parse_time(arg: &str) -> Result<NaiveDateTime, String> {
 		last_error = Some(time.unwrap_err().to_string());
 	}
 	
-	Err(last_error.unwrap())
+	Err(format!("parse_time: {}", last_error.unwrap()))
 }
