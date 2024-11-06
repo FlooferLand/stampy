@@ -9,7 +9,7 @@ fn main() {
     let args = args::Args::parse();
 
     if args.created.is_some() {
-        fatal_error!(-1, "Setting the creation date is planned but currently unsupported, see https://github.com/FlooferLand/stampy/README.md");
+        fatal_error!(-1, "Setting the creation date is planned but currently unsupported, see https://github.com/FlooferLand/stampy/blob/main/README.md#todo");
     }
     
     // No flags
